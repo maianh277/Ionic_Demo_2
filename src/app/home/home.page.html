@@ -1,20 +1,40 @@
-<ion-header [translucent]="true">
+<!-- <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title>Log In</ion-title>
   </ion-toolbar>
-</ion-header>
+</ion-header> -->
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+  <div class="login-container">
+    <h1>WELCOME HOME!</h1>
+    <p>Login to see new things</p>
+    <ion-item lines="full">
+      <ion-label position="floating">Email</ion-label>
+      <ion-input type="email" [(ngModel)]="email"></ion-input>
+    </ion-item>
+    <ion-item lines="full">
+      <ion-label position="floating">Password</ion-label>
+      <ion-input type="password" [(ngModel)]="password"></ion-input>
+    </ion-item>
+    <ion-toast
+      *ngIf="loginError"
+      [isOpen]="isToastOpen"
+      message="{{ loginError }}"
+      [duration]="5000"
+      (didDismiss)="setOpen(false)"
+    ></ion-toast>
+    <!-- <div *ngIf="loginError" class="error-message">{{ loginError }}</div> -->
+    <ion-row>
+      <ion-col>
+        <ion-button
+          class="login-button"
+          type="submit"
+          expand="block"
+          (click)="login()"
+        >
+          Log in
+        </ion-button>
+      </ion-col>
+    </ion-row>
   </div>
 </ion-content>

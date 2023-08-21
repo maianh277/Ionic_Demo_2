@@ -1,0 +1,72 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Forum</ion-title>
+    <!-- <h1>Forum</h1> -->
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-button class="add-button" (click)="addPost()">
+    <ion-icon name="add-outline"></ion-icon>
+    <ion-toast
+      [isOpen]="isToastOpen"
+      message="Please insert content"
+      [duration]="5000"
+      (didDismiss)="setOpen(false)"
+    ></ion-toast>
+  </ion-button>
+  <div *ngFor="let project of pagedProjects">
+    <!-- <div *ngFor="let project of ionProjects"> -->
+    <ion-grid class="post-container">
+      <ion-row>
+        <ion-col>
+          <img src="../../../assets/avatar.jpg" alt="avatar" />
+          <ion-row>
+            <ion-icon
+              class="delete-icon"
+              name="trash-outline"
+              (click)="deleteAlert(project.id)"
+            ></ion-icon>
+            <ion-icon
+              class="edit-icon"
+              name="create-outline"
+              *ngIf="project.author && canEditPost(project.author)"
+              (click)="editPostIfAllowed(project.author, project.id)"
+            ></ion-icon>
+          </ion-row>
+        </ion-col>
+        <ion-col class="post-content-col">
+          <p class="post-author-date">
+            <span class="post-author">
+              {{ project.author?.replace('@gmail.com', '') }}
+            </span>
+            <span class="post-date">{{ project.datePosted }}</span>
+          </p>
+          <p class="post-content">{{ project.content }}</p>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+    <!-- </div> -->
+  </div>
+
+  <!-- <pagination-controls (pageChange)="pageChanged($event)"></pagination-controls> -->
+  <div class="pagination">
+    <ion-button
+      class="pagination-button"
+      (click)="goToPreviousPage()"
+      [disabled]="currentPage === 1"
+      >Previous</ion-button
+    >
+    <ion-button
+      class="pagination-button"
+      (click)="goToNextPage()"
+      [disabled]="currentPage === getTotalPages()"
+      >Next</ion-button
+    >
+  </div>
+</ion-content>
