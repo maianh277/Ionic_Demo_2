@@ -12,7 +12,7 @@ export interface Forum {
   id: string;
   author?: string;
   content?: string;
-  datePosted: string;
+  datePosted: string; // Sử dụng kiểu Timestamp ở đây
 }
 
 @Injectable({

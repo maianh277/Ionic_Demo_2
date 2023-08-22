@@ -9,6 +9,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { format } from 'date-fns';
+import { isThisISOWeek } from 'date-fns/esm';
 @Component({
   selector: 'app-forum',
   templateUrl: './forum.page.html',
@@ -19,9 +20,9 @@ export class ForumPage implements OnInit {
   pagedProjects: Forum[] = [];
   itemsPerPage = 5;
   currentPage = 1;
-
+  currentUser: firebase.User | null = null;
+  loginError?: string;
   isToastOpen = false;
-
   setOpen(isOpen: boolean) {
     this.isToastOpen = isOpen;
   }
@@ -30,9 +31,12 @@ export class ForumPage implements OnInit {
     private authService: FirebaseAuthService,
     private firestoreService: FirestoreDataService
   ) {}
-
   ngOnInit() {
-    this.fetchIonProjects();
+    // this.fetchIonProjects();
+    this.authService.getCurrentUser().subscribe((user) => {
+      this.currentUser = user;
+      this.fetchIonProjects();
+    });
   }
 
   fetchIonProjects() {
@@ -64,7 +68,28 @@ export class ForumPage implements OnInit {
       this.pageChanged(this.currentPage - 1);
     }
   }
+  calculatedate(time: Date): string {
+    const now = new Date();
+    const timeDifference = now.getTime() - time.getTime();
+    const seconds = Math.floor(timeDifference / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
+    if (days > 0) {
+      return days + 'days left';
+    } else if (hours > 0) {
+      const remainingMinutes = minutes % 60;
+      if (remainingMinutes === 0) {
+        return (hours % 24) + 'hours left';
+      } else {
+        return (hours % 24) + 'hours ' + remainingMinutes + 'minutes';
+      }
+    } else if (minutes > 0) {
+      return minutes + '分前';
+    }
+    return '数秒前';
+  }
   async addPost() {
     this.firestoreService.getCurrentUser().subscribe(async (user) => {
       if (!user) {
@@ -84,7 +109,7 @@ export class ForumPage implements OnInit {
             handler: async (res) => {
               const { content } = res;
               const author = user.email || '';
-              const datePosted = format(new Date(), 'dd/MM/yyyy');
+              const datePosted = this.calculatedate(new Date());
 
               const newPost: Forum = {
                 id: '',
@@ -92,7 +117,9 @@ export class ForumPage implements OnInit {
                 content,
                 datePosted,
               };
+
               if (!content) {
+                this.loginError = 'Please input content';
                 this.setOpen(true);
               } else
                 try {
@@ -109,18 +136,37 @@ export class ForumPage implements OnInit {
       await alert.present();
     });
   }
-  async canEditPost(author: string): Promise<boolean> {
-    const currentUserEmail = await this.firestoreService.getCurrentUserEmail();
-    return currentUserEmail === author;
-  }
-  async editPostIfAllowed(author: string, postId: string) {
-    const canEdit = await this.canEditPost(author);
-    if (canEdit) {
-      await this.editPost(postId);
-    } else this.setOpen(true);
-  }
+  // async canEditPost(author: string): Promise<boolean> {
+  //   const currentUserEmail = await this.firestoreService.getCurrentUserEmail();
+  //   return currentUserEmail === author;
+  // }
 
-  async editPost(id: string) {
+  // async editPostIfAllowed(author: string, postId: string) {
+  //   const canEdit = await this.canEditPost(author);
+  //   if (canEdit) {
+  //     await this.editPost(postId);
+  //   } else {
+  //     this.setOpen(true);
+  //   }
+  // }
+
+  isCurrentUserAuthor(author: string | undefined): boolean {
+    return (
+      !!author && this.currentUser !== null && author === this.currentUser.email
+    );
+  }
+  async editPost(id: string, author: string | undefined) {
+    if (!author) {
+      console.error('Author information is missing.');
+      return;
+    }
+
+    if (!this.isCurrentUserAuthor(author)) {
+      this.setOpen(true);
+      this.loginError = 'You can not edit this post';
+      return;
+    }
+
     const alert = await this.alertCtrl.create({
       header: 'Edit Note',
       inputs: [
@@ -132,25 +178,17 @@ export class ForumPage implements OnInit {
           text: 'Save',
           handler: async (res) => {
             const { content } = res;
-
-            try {
-              // const postToEdit = this.ionProjects.find(
-              //   (post) => post.id === id
-              // );
-
-              // const currentUserEmail =
-              //   await this.firestoreService.getCurrentUserEmail();
-
-              // if (postToEdit && postToEdit.author === currentUserEmail) {
-              await this.firestoreService.editPost(id, content);
-              console.log('Post edited successfully');
-              this.fetchIonProjects();
-              // } else {
-              //   this.setOpen(true);
-              //   console.error('You are not allowed to edit this post.');
-              // }
-            } catch (error) {
-              console.error('Error editing post:', error);
+            if (!content) {
+              this.loginError = 'Please input content';
+              this.setOpen(true);
+            } else {
+              try {
+                await this.firestoreService.editPost(id, content);
+                console.log('Post edited successfully');
+                this.fetchIonProjects();
+              } catch (error) {
+                console.error('Error editing post:', error);
+              }
             }
           },
         },
@@ -158,6 +196,7 @@ export class ForumPage implements OnInit {
     });
     await alert.present();
   }
+
   deletePost(id: string) {
     this.firestoreService
       .deletePost(id)
@@ -170,7 +209,16 @@ export class ForumPage implements OnInit {
       });
   }
 
-  async deleteAlert(id: string) {
+  async deleteAlert(id: string, author: string | undefined) {
+    if (!author) {
+      console.error('Author information is missing.');
+      return;
+    }
+    if (!this.isCurrentUserAuthor(author)) {
+      this.setOpen(true);
+      this.loginError = 'You can not delete this post';
+      return;
+    }
     const confirmAlert = await this.alertCtrl.create({
       header: 'Confirm!',
       message: 'Do you want to delete this post?',

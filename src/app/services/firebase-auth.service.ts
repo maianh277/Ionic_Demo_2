@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Router } from '@angular/router';
-
+import { Observable } from 'rxjs';
+import firebase from 'firebase/compat/app';
 @Injectable({
   providedIn: 'root',
 })
@@ -9,6 +10,10 @@ export class FirebaseAuthService {
   isLoggedIn = false;
 
   constructor(public firebaseAuth: AngularFireAuth, private router: Router) {}
+
+  getCurrentUser(): Observable<firebase.User | null> {
+    return this.firebaseAuth.authState;
+  }
 
   async login(email: string, password: string) {
     try {
@@ -18,12 +23,14 @@ export class FirebaseAuthService {
       );
       this.isLoggedIn = true;
       console.log('OK');
-      this.router.navigate(['/forum']);
+      this.router.navigate(['/forum'], {
+        queryParams: { user: email.split('@')[0] },
+      });
     } catch (error) {
       console.error('Error signing in:', error);
       this.isLoggedIn = false;
 
-      const firebaseError: any = error; 
+      const firebaseError: any = error;
 
       if (firebaseError.code === 'auth/user-not-found') {
         throw new Error('Email is incorrect');

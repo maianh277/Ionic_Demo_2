@@ -15,8 +15,8 @@
     <ion-icon name="add-outline"></ion-icon>
     <ion-toast
       [isOpen]="isToastOpen"
-      message="Please insert content"
-      [duration]="5000"
+      message="{{ loginError }}"
+      [duration]="3000"
       (didDismiss)="setOpen(false)"
     ></ion-toast>
   </ion-button>
@@ -30,13 +30,13 @@
             <ion-icon
               class="delete-icon"
               name="trash-outline"
-              (click)="deleteAlert(project.id)"
+              (click)="deleteAlert(project.id, project.author)"
             ></ion-icon>
+
             <ion-icon
               class="edit-icon"
               name="create-outline"
-              *ngIf="project.author && canEditPost(project.author)"
-              (click)="editPostIfAllowed(project.author, project.id)"
+              (click)="editPost(project.id, project.author)"
             ></ion-icon>
           </ion-row>
         </ion-col>
@@ -46,6 +46,7 @@
               {{ project.author?.replace('@gmail.com', '') }}
             </span>
             <span class="post-date">{{ project.datePosted }}</span>
+            <!-- <span class="post-date">{{ project.timeAgo }}</span> -->
           </p>
           <p class="post-content">{{ project.content }}</p>
         </ion-col>
